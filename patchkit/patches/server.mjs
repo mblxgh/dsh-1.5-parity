@@ -73,4 +73,22 @@ export default [
     skip: /\[patchkit\] 同上 \*\/\) throw new SessionFormatError\("format v4 developer/,
     verify: (t) => !t.includes('source["kind"] === "plugin"'),
   },
+
+  {
+    id: 'sandbox-short-circuit-without-label',
+    group: 'server',
+    title: '不打 Low 标签后，授权短路不再要求标签',
+    why: 'grantWrite 开头有一个「已经授过权就直接返回」的短路，它的条件里含 hasExactLabel(低完整性标签)。' +
+      '上面那条 sandbox-no-low-label 把 label 动作改成 keep（不再打标签），于是这个条件永远为假 —— ' +
+      '每次 pwsh 命令都要重新 merge + apply 一遍 DACL，在中文长路径上极慢，还要抢同一把路径锁，' +
+      '表现为「命令永远跑不完」（2026-11-24 桌面端实测：同一句 Get-ChildItem 在 1.5 秒回、在 2.2 无限挂起）。' +
+      '1.5 的同一函数只有 hasExactGrant 一条条件，所以它一直正常；这里把标签那条去掉，只留「授权 ACE 与 world deny 都在」。',
+    pkg: 'dsh-sandbox-windows-acl',
+    file: 'lib/types-*.js',
+    find: /if \(oldAcl !== null && labelAcl !== null && hasExactGrant\(oldAcl, sidPtr\) && hasExactDeny\(oldAcl, worldSidPtr\) && hasExactLabel\(labelAcl, lowLabelSidPtr\)\) \{/,
+    repl: 'if (oldAcl !== null && hasExactGrant(oldAcl, sidPtr) && hasExactDeny(oldAcl, worldSidPtr) /* [patchkit] 不再要求 Low 标签：上面的 label 动作已改成 keep，要求它就永远进不来，每条命令都要重改一次 DACL */) {',
+    skip: /hasExactDeny\(oldAcl, worldSidPtr\) \/\* \[patchkit\] 不再要求 Low 标签/,
+    // 判据：短路条件里不再出现 hasExactLabel
+    verify: (t) => !/hasExactLabel\(labelAcl, lowLabelSidPtr\)\) \{/.test(t),
+  },
 ];
