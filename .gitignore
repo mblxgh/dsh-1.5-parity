@@ -1,0 +1,17 @@
+# 依赖树与运行时目录，不进仓库（几百 MB）
+v2/node_modules/
+田/
+node_modules/
+
+# 补丁工具留下的现场
+_patchkit-backup/
+*.bak-before-patch
+*.bak
+*.bak-*
+
+# 日志与临时
+*.log
+
+# 开发辅助，不进仓库
+patchkit/工具/
+v2/
